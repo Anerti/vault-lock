@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Vault-Tec wings around the Omarchy square mark (in place of the roundel).
+     Generated: mark traced from the opaque cells of /usr/share/omarchy/icon.png (15x15 grid of 20-unit cells), scaled to the
+     roundel's 360-unit height, stroked 0 units heavier; wings end 16 units short of it. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 930.07 360.0">
+  <g id="Wings" fill="#ffffff">
+    <path d="M212.3,120.05c-6.24,0-37.05-1.18-52.24-23.77l-1.97-2.92,1.97-2.92c15.19-22.59,46.01-23.77,52.24-23.77H269.03V120.05Z"/>
+    <path d="M269.03,153.3H54.22c-6.24,0-37.04,1.18-52.24,23.77l-1.97,2.92,1.97,2.92c15.21,22.59,46.01,23.77,52.24,23.77H269.03Z"/>
+    <path d="M212.3,239.95c-6.24,0-37.05,1.18-52.24,23.77l-1.97,2.92,1.97,2.92c15.19,22.59,46.01,23.77,52.24,23.77H269.03V239.95Z"/>
+    <path d="M717.77,120.05c6.24,0,37.05-1.18,52.24-23.77l1.97-2.92-1.97-2.92c-15.19-22.59-46.01-23.77-52.24-23.77H661.04V120.05Z"/>
+    <path d="M661.04,153.3H875.85c6.24,0,37.04,1.18,52.24,23.77l1.97,2.92-1.97,2.92c-15.21,22.59-46.01,23.77-52.24,23.77H661.04Z"/>
+    <path d="M717.77,239.95c6.24,0,37.05,1.18,52.24,23.77l1.97,2.92-1.97,2.92c-15.19,22.59-46.01,23.77-52.24,23.77H661.04V239.95Z"/>
+  </g>
+  <g id="OmarchyMark" fill="#ffffff" transform="translate(285.03,0) scale(1.2000)">
+    <path d="M0 0h300v20h-300ZM0 0h20v300h-20ZM280 0h20v300h-20ZM0 280h160v20h-160ZM180 280h120v20h-120ZM40 40h120v20h-120ZM220 40h40v20h-40ZM40 40h20v220h-20ZM240 40h20v220h-20ZM40 240h220v20h-220ZM140 0h20v60h-20ZM0 140h60v20h-60ZM140 240h20v60h-20Z"/>
+  </g>
+</svg>

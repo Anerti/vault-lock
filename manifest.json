@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "anerti.lock",
+  "name": "Vault-Tec lock screen",
+  "version": "1.0.0",
+  "author": "anerti",
+  "description": "Omarchy terminal lock screen from the Dark Terminal Protocol mockup",
+  "omarchy": {
+    "capabilities": [
+      "authentication"
+    ],
+    "clonedFrom": "omarchy.lock"
+  },
+  "kinds": [
+    "service"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml"
+  }
+}
