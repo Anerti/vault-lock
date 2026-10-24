@@ -9,7 +9,7 @@ QtObject {
 
   readonly property color brightForeground: values.bright_foreground || Commons.Color.foreground
   readonly property color darkBackground: values.dark_background || Commons.Color.background
-  readonly property color lighterBackground: values.lighter_background || Commons.Color.background
+  readonly property color darkerBackground: values.darker_background || darkBackground
 
   readonly property string signature: [Commons.Color.currentThemePath, Commons.Color.foreground, Commons.Color.background, Commons.Color.accent, Commons.Color.muted, Commons.Color.urgent].join()
   onSignatureChanged: colorsFile.reload()

@@ -31,9 +31,7 @@ Item {
   readonly property color muted: Commons.Color.muted
   readonly property color urgent: Commons.Color.urgent
   readonly property color bright: themePalette.brightForeground
-  readonly property color bg: Commons.Color.background
   readonly property color bgDeep: themePalette.darkBackground
-  readonly property color bgGlow: themePalette.lighterBackground
   readonly property string textFamily: shareTech.status === FontLoader.Ready ? shareTech.name : Style.font.family
 
   ThemePalette { id: themePalette }
@@ -177,10 +175,11 @@ Item {
     onTriggered: on = !on
   }
 
-  // .lock background: a faint green bloom above centre over a deep radial.
+  // CRT in a dark room: a near-black wash with a soft glow behind the emblem,
+  // so the terminal is the brightest thing on screen.
   Canvas {
     anchors.fill: parent
-    readonly property var shades: [root.fg, root.bg, root.bgDeep, root.bgGlow]
+    readonly property var shades: [root.fg, root.bgDeep, themePalette.darkerBackground]
     onShadesChanged: requestPaint()
     onWidthChanged: requestPaint()
     onHeightChanged: requestPaint()
@@ -188,12 +187,14 @@ Item {
     onPaint: {
       var ctx = getContext("2d")
       ctx.reset()
-      ctx.fillStyle = root.bgDeep
+      var wash = ctx.createLinearGradient(0, 0, 0, height)
+      wash.addColorStop(0, root.cssOf(themePalette.darkerBackground, 1))
+      wash.addColorStop(0.5, root.cssOf(root.bgDeep, 1))
+      wash.addColorStop(1, root.cssOf(themePalette.darkerBackground, 1))
+      ctx.fillStyle = wash
       ctx.fillRect(0, 0, width, height)
-      root.paintEllipse(ctx, width, height, width / 2, height / 2, width * 1.3, height * 1.1,
-        [[0, root.cssOf(root.bgGlow, 1)], [0.5, root.cssOf(root.bg, 1)], [1, root.cssOf(root.bgDeep, 1)]])
-      root.paintEllipse(ctx, width, height, width / 2, height * 0.44, width * 0.6, height * 0.55,
-        [[0, root.cssOf(root.fg, 0.10)], [0.62, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0)"]])
+      root.paintEllipse(ctx, width, height, width / 2, height * 0.36, width * 0.46, height * 0.5,
+        [[0, root.cssOf(root.fg, 0.08)], [0.55, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0)"]])
     }
   }
 
@@ -527,8 +528,8 @@ Item {
     }
   }
 
-  // .granted: the PLEASE STAND BY test card with its own heavier CRT, faded in
-  // over everything while the service holds the lock for the hand-off.
+  // .granted: the PLEASE STAND BY test card, faded in over everything while the
+  // service holds the lock for the hand-off.
   Rectangle {
     id: granted
     anchors.fill: parent
@@ -575,38 +576,40 @@ Item {
           [[0, root.cssOf(root.fg, 0.10)], [0.62, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0)"]])
       }
     }
+  }
 
-    // Scanlines: 2px clear, 2px at 0.32.
-    Canvas {
-      anchors.fill: parent
-      onWidthChanged: requestPaint()
-      onHeightChanged: requestPaint()
-      onPaint: {
-        var ctx = getContext("2d")
-        ctx.reset()
-        ctx.fillStyle = "rgba(0,0,0,0.32)"
-        for (var y = 2; y < height; y += 4) ctx.fillRect(0, y, width, 2)
-      }
+  // Whole-screen CRT dressing, above the terminal and the PLEASE STAND BY card.
+
+  // Scanlines: 2px clear, 2px at 0.32.
+  Canvas {
+    anchors.fill: parent
+    onWidthChanged: requestPaint()
+    onHeightChanged: requestPaint()
+    onPaint: {
+      var ctx = getContext("2d")
+      ctx.reset()
+      ctx.fillStyle = "rgba(0,0,0,0.32)"
+      for (var y = 2; y < height; y += 4) ctx.fillRect(0, y, width, 2)
+    }
+  }
+
+  // Slow rolling beam.
+  Rectangle {
+    id: beam
+    width: parent.width
+    height: parent.height * 0.18
+    gradient: Gradient {
+      GradientStop { position: 0.0; color: Util.alpha(root.bright, 0) }
+      GradientStop { position: 0.5; color: Util.alpha(root.bright, 0.06) }
+      GradientStop { position: 1.0; color: Util.alpha(root.bright, 0) }
     }
 
-    // Rolling beam.
-    Rectangle {
-      id: beam
-      width: parent.width
-      height: parent.height * 0.2
-      gradient: Gradient {
-        GradientStop { position: 0.0; color: Util.alpha(root.bright, 0) }
-        GradientStop { position: 0.5; color: Util.alpha(root.bright, 0.10) }
-        GradientStop { position: 1.0; color: Util.alpha(root.bright, 0) }
-      }
-
-      NumberAnimation on y {
-        from: -beam.height
-        to: granted.height
-        duration: 2800
-        loops: Animation.Infinite
-        running: granted.visible
-      }
+    NumberAnimation on y {
+      from: -beam.height
+      to: root.height
+      duration: 7000
+      loops: Animation.Infinite
+      running: root.loadBackground && root.visible
     }
   }
 }
