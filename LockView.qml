@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Window
 import qs.Commons
+import qs.Commons as Commons
 
 // The Omarchy terminal lock screen, laid out like a RobCo terminal: OMARCHY (TM)
 // TERMINAL PROTOCOL over the Omarchy mark in Vault-Tec wings, then a centred
@@ -12,8 +14,6 @@ import qs.Commons
 Item {
   id: root
 
-  property string backgroundPath: ""
-  property int backgroundVersion: 0
   property bool fingerprintConfigured: false
   property bool authenticatingPassword: false
   property string failureMessage: ""
@@ -27,11 +27,11 @@ Item {
   property string kernelVersion: ""
   property string hostName: ""
 
-  readonly property color fg: Color.foreground
-  readonly property color muted: Color.muted
-  readonly property color urgent: Color.urgent
+  readonly property color fg: Commons.Color.foreground
+  readonly property color muted: Commons.Color.muted
+  readonly property color urgent: Commons.Color.urgent
   readonly property color bright: themePalette.brightForeground
-  readonly property color bg: Color.background
+  readonly property color bg: Commons.Color.background
   readonly property color bgDeep: themePalette.darkBackground
   readonly property color bgGlow: themePalette.lighterBackground
   readonly property string textFamily: shareTech.status === FontLoader.Ready ? shareTech.name : Style.font.family
@@ -51,7 +51,8 @@ Item {
     if (omarchyVersion.length > 0) versions.push("OMARCHY VERSION " + omarchyVersion)
     if (kernelVersion.length > 0) versions.push("KERNEL VERSION " + kernelVersion)
     if (versions.length > 0) lines.push(versions.join(" | "))
-    lines.push("COPYRIGHT 2025 - " + new Date().getFullYear() + " OMARCHY")
+    var year = new Date().getFullYear()
+    lines.push("COPYRIGHT 2025" + (year > 2025 ? " - " + year : "") + " OMARCHY")
     if (hostName.length > 0) lines.push("- " + hostName + " -")
     return lines.map(function(line) { return line.toUpperCase() })
   }
@@ -83,6 +84,18 @@ Item {
   function px(n) { return Style.space(n) }
   function glowOf(c, a) { return Qt.rgba(c.r, c.g, c.b, a) }
   function cssOf(c, a) { return "rgba(" + Math.round(c.r * 255) + "," + Math.round(c.g * 255) + "," + Math.round(c.b * 255) + "," + a + ")" }
+
+  // Filled radial ellipse in canvas coordinates; w/h are the canvas size.
+  function paintEllipse(ctx, w, h, cx, cy, rx, ry, stops) {
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.scale(rx, ry)
+    var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1)
+    for (var i = 0; i < stops.length; i++) g.addColorStop(stops[i][0], stops[i][1])
+    ctx.fillStyle = g
+    ctx.fillRect(-cx / rx, -cy / ry, w / rx, h / ry)
+    ctx.restore()
+  }
 
   signal submitPassword(string password)
   signal passwordTextEdited(string password)
@@ -125,7 +138,7 @@ Item {
   onTypingEndChanged: if (!typing && typed > 0) typed = typingEnd
   Component.onCompleted: {
     syncPasswordText()
-    restartTyping()
+    if (loadBackground) restartTyping()
     if (inputEnabled) Qt.callLater(forcePasswordFocus)
   }
 
@@ -166,32 +179,20 @@ Item {
 
   // .lock background: a faint green bloom above centre over a deep radial.
   Canvas {
-    id: backdrop
     anchors.fill: parent
     readonly property var shades: [root.fg, root.bg, root.bgDeep, root.bgGlow]
     onShadesChanged: requestPaint()
     onWidthChanged: requestPaint()
     onHeightChanged: requestPaint()
 
-    function ellipse(ctx, cx, cy, rx, ry, stops) {
-      ctx.save()
-      ctx.translate(cx, cy)
-      ctx.scale(rx, ry)
-      var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1)
-      for (var i = 0; i < stops.length; i++) g.addColorStop(stops[i][0], stops[i][1])
-      ctx.fillStyle = g
-      ctx.fillRect(-cx / rx, -cy / ry, width / rx, height / ry)
-      ctx.restore()
-    }
-
     onPaint: {
       var ctx = getContext("2d")
       ctx.reset()
       ctx.fillStyle = root.bgDeep
       ctx.fillRect(0, 0, width, height)
-      ellipse(ctx, width / 2, height / 2, width * 1.3, height * 1.1,
+      root.paintEllipse(ctx, width, height, width / 2, height / 2, width * 1.3, height * 1.1,
         [[0, root.cssOf(root.bgGlow, 1)], [0.5, root.cssOf(root.bg, 1)], [1, root.cssOf(root.bgDeep, 1)]])
-      ellipse(ctx, width / 2, height * 0.44, width * 0.6, height * 0.55,
+      root.paintEllipse(ctx, width, height, width / 2, height * 0.44, width * 0.6, height * 0.55,
         [[0, root.cssOf(root.fg, 0.10)], [0.62, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0)"]])
     }
   }
@@ -480,7 +481,7 @@ Item {
           }
 
           onAccepted: {
-            var submitted = root.passwordText
+            var submitted = text
             root.passwordTextEdited("")
             if (submitted.length > 0) root.submitPassword(submitted)
           }
@@ -545,8 +546,8 @@ Item {
         ? Qt.resolvedUrl("assets/please-stand-by.jpg") : ""
       fillMode: Image.PreserveAspectCrop
       asynchronous: true
-      sourceSize.width: width
-      sourceSize.height: height
+      sourceSize.width: Math.round(width * Screen.devicePixelRatio)
+      sourceSize.height: Math.round(height * Screen.devicePixelRatio)
       visible: false
     }
 
@@ -568,9 +569,9 @@ Item {
       onPaint: {
         var ctx = getContext("2d")
         ctx.reset()
-        backdrop.ellipse(ctx, width / 2, height / 2, width * 1.2, height * 1.0,
+        root.paintEllipse(ctx, width, height, width / 2, height / 2, width * 1.2, height * 1.0,
           [[0, root.cssOf(root.bgDeep, 0.08)], [0.28, root.cssOf(root.bgDeep, 0.08)], [0.7, root.cssOf(root.bgDeep, 0.42)], [1, root.cssOf(root.bgDeep, 0.86)]])
-        backdrop.ellipse(ctx, width / 2, height * 0.44, width * 0.6, height * 0.55,
+        root.paintEllipse(ctx, width, height, width / 2, height * 0.44, width * 0.6, height * 0.55,
           [[0, root.cssOf(root.fg, 0.10)], [0.62, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0)"]])
       }
     }

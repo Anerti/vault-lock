@@ -3,19 +3,11 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pam
 import Quickshell.Wayland
-import qs.Commons
-import qs.Commons as Commons
 
 Item {
   id: root
 
-  property var shell: null
-  property string omarchyPath: ""
-
-  readonly property string home: Quickshell.env("HOME")
-  readonly property string stateHome: home + "/.local/state"
   readonly property string userName: Quickshell.env("USER") || Quickshell.env("LOGNAME")
-  readonly property string currentBackgroundLink: stateHome + "/omarchy/current/background"
 
   property bool lockRequested: false
   property bool pendingSessionLock: false
@@ -32,12 +24,10 @@ Item {
   property string pendingPassword: ""
   property string failureMessage: ""
   property int failedAttempts: 0
-  property string backgroundPath: ""
   // Banner lines: Omarchy version, kernel version and hostname.
   property string omarchyVersion: ""
   property string kernelVersion: ""
   property string hostName: ""
-  property int backgroundVersion: 0
   property int typingSurfaces: 0
   property string lastEvent: "init"
   property string lastEventAt: ""
@@ -116,10 +106,6 @@ Item {
     beginLock()
   }
 
-  function refreshBackground() {
-    if (!readlinkProc.running) readlinkProc.running = true
-  }
-
   function refreshSystemInfo() {
     if (!systemInfoProc.running) systemInfoProc.running = true
   }
@@ -131,7 +117,7 @@ Item {
   function logEvent(event) {
     lastEvent = event
     lastEventAt = new Date().toISOString()
-    console.log("omarchy lock " + lastEventAt + " " + event)
+    console.log("vault-lock " + lastEventAt + " " + event)
   }
 
   function resetAuthenticationState() {
@@ -161,7 +147,6 @@ Item {
     queueSessionLock()
 
     Qt.callLater(function() {
-      root.refreshBackground()
       root.refreshFingerprintStatus()
       root.refreshSystemInfo()
     })
@@ -215,7 +200,7 @@ Item {
 
   function runWake() {
     if (!wakeProcess.running) wakeProcess.running = true
-    if (lockRequested) armBlankTimer()
+    if (lockRequested && !granting) armBlankTimer()
   }
 
   function runBlank() {
@@ -317,8 +302,6 @@ Item {
       LockView {
         id: lockView
         anchors.fill: parent
-        backgroundPath: root.backgroundPath
-        backgroundVersion: root.backgroundVersion
         fingerprintConfigured: root.fingerprintConfigured
         authenticatingPassword: root.authenticatingPassword
         failureMessage: root.failureMessage
@@ -353,20 +336,38 @@ Item {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
     exclusionMode: ExclusionMode.Ignore
 
-    LockView {
+    // Built on demand: the preview is only ever shown from IPC, so there is no
+    // reason to carry a hidden lock-screen tree (and its typing timers) around.
+    Loader {
       anchors.fill: parent
-      backgroundPath: root.backgroundPath
-      backgroundVersion: root.backgroundVersion
-      fingerprintConfigured: root.fingerprintConfigured
-      authenticatingPassword: false
-      failureMessage: ""
-      inputEnabled: false
-      loadBackground: root.previewVisible
-      granting: root.previewGranting
-      omarchyVersion: root.omarchyVersion
-      kernelVersion: root.kernelVersion
-      hostName: root.hostName
-      passwordText: ""
+      active: root.previewVisible
+      sourceComponent: previewView
+    }
+
+    Component {
+      id: previewView
+
+      LockView {
+        fingerprintConfigured: root.fingerprintConfigured
+        authenticatingPassword: false
+        failureMessage: ""
+        inputEnabled: false
+        loadBackground: root.previewVisible
+        granting: root.previewGranting
+        omarchyVersion: root.omarchyVersion
+        kernelVersion: root.kernelVersion
+        hostName: root.hostName
+        passwordText: ""
+      }
+    }
+
+    Item {
+      anchors.fill: parent
+      focus: root.previewVisible
+      Keys.onEscapePressed: {
+        root.previewVisible = false
+        root.previewGranting = false
+      }
     }
 
     MouseArea {
@@ -425,21 +426,6 @@ Item {
     interval: 250
     repeat: false
     onTriggered: root.startFingerprint()
-  }
-
-  Process {
-    id: readlinkProc
-    command: ["readlink", "-f", root.currentBackgroundLink]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        var next = String(text || "").trim()
-        if (next !== root.backgroundPath) {
-          root.backgroundPath = next
-          root.backgroundVersion += 1
-        }
-      }
-    }
   }
 
   // Version without the package release, kernel without its build suffix.
@@ -586,7 +572,6 @@ Item {
   }
 
   Component.onCompleted: {
-    refreshBackground()
     refreshFingerprintStatus()
     refreshSystemInfo()
     checkStrandedLock()
@@ -623,7 +608,6 @@ Item {
     }
 
     function preview(): string {
-      root.refreshBackground()
       root.refreshFingerprintStatus()
       root.refreshSystemInfo()
       root.previewGranting = false

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "anerti.lock",
+  "id": "anerti.vault-lock",
   "name": "Vault-Tec lock screen",
   "version": "1.0.0",
   "author": "anerti",

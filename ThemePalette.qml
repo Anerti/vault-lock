@@ -1,17 +1,17 @@
 import QtQuick
 import Quickshell.Io
-import qs.Commons
+import qs.Commons as Commons
 
 QtObject {
   id: root
 
   property var values: ({})
 
-  readonly property color brightForeground: values.bright_foreground || Color.foreground
-  readonly property color darkBackground: values.dark_background || Color.background
-  readonly property color lighterBackground: values.lighter_background || Color.background
+  readonly property color brightForeground: values.bright_foreground || Commons.Color.foreground
+  readonly property color darkBackground: values.dark_background || Commons.Color.background
+  readonly property color lighterBackground: values.lighter_background || Commons.Color.background
 
-  readonly property string signature: [Color.foreground, Color.background, Color.accent, Color.muted, Color.urgent].join()
+  readonly property string signature: [Commons.Color.currentThemePath, Commons.Color.foreground, Commons.Color.background, Commons.Color.accent, Commons.Color.muted, Commons.Color.urgent].join()
   onSignatureChanged: colorsFile.reload()
 
   function parse(raw) {
@@ -26,9 +26,11 @@ QtObject {
 
   property FileView colorsFile: FileView {
     id: colorsFile
-    path: Color.currentThemePath + "/colors.toml"
+    path: Commons.Color.currentThemePath + "/colors.toml"
+    watchChanges: true
     printErrors: false
     onLoaded: root.values = root.parse(text())
     onLoadFailed: root.values = {}
+    onFileChanged: reload()
   }
 }
