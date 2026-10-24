@@ -596,6 +596,9 @@ Item {
   // Slow rolling beam.
   Rectangle {
     id: beam
+    // Animate a phase, not y: from/to are captured at start, when the view can still be 0 high.
+    property real phase: 0
+    y: -height + phase * (root.height + height)
     width: parent.width
     height: parent.height * 0.18
     gradient: Gradient {
@@ -604,9 +607,9 @@ Item {
       GradientStop { position: 1.0; color: Util.alpha(root.bright, 0) }
     }
 
-    NumberAnimation on y {
-      from: -beam.height
-      to: root.height
+    NumberAnimation on phase {
+      from: 0
+      to: 1
       duration: 7000
       loops: Animation.Infinite
       running: root.loadBackground && root.visible
